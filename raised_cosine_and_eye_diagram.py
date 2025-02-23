@@ -25,7 +25,8 @@ def generate_signal(N, T, r, Fs=1000):
     Fs: frequência de amostragem
     """
     t_total = (N + 100) * T  # Duração total do sinal
-    t = np.linspace(-t_total / 2, t_total / 2, int(Fs * t_total))
+    # t = np.linspace(-t_total / 2, t_total / 2, int(Fs * t_total))
+    t = np.linspace(-5, 60, int(Fs * t_total))
     signal = np.zeros_like(t)
     pulses = []
     
@@ -41,9 +42,9 @@ def generate_signal(N, T, r, Fs=1000):
     return t, signal, pulses, bits
 
 # Parâmetros
-N = 25      # Número de pulsos
+N = 50      # Número de pulsos
 T = 1      # Período de símbolo
-r = 0.5    # Fator de roll-off
+r = 0.01    # Fator de roll-off
 Fs = 1000  # Frequência de amostragem
 
 t, signal, pulses, bits = generate_signal(N, T, r, Fs)
@@ -54,7 +55,8 @@ print("Sequência de bits transmitida:", bits)
 # Plotar os pulsos individuais
 plt.figure(figsize=(10, 6))
 for i, pulse in enumerate(pulses):
-    plt.plot(t, pulse, label=f"Pulso {i+1} (Bit {bits[i]})")
+    # plt.plot(t, pulse, label=f"Pulso {i+1} (Bit {bits[i]})")
+    plt.plot(t, pulse)
 plt.xlabel("Tempo (s)")
 plt.ylabel("Amplitude")
 plt.title("Pulsos Individuais de Cosseno Levantado (Modulados pelos Bits)")
