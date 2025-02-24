@@ -16,60 +16,97 @@ def raised_cosine_pulse(t, T, r):
     pulse = np.where(denom != 0, sinc_part * cos_part / denom, np.pi / 4 * np.sinc(1 / (2 * r)))
     return pulse
 
-def generate_signal(N, T, r, Fs=1000):
+def generate_signal(N, T, r, modulation="BPSK", M=2, Fs=1000):
     """
     Gera um sinal composto por N pulsos de cosseno levantado espaçados por T segundos.
     N: número de pulsos
     T: período de símbolo
     r: fator de roll-off
+    modulation: Tipo de modulação ("BPSK" ou "PAM")
+    M: Número de símbolos na modulação PAM (deve ser potência de 2)
     Fs: frequência de amostragem
     """
-    t_total = (N + 100) * T  # Duração total do sinal
-    # t = np.linspace(-t_total / 2, t_total / 2, int(Fs * t_total))
-    t = np.linspace(-5, 60, int(Fs * t_total))
+    t_total = (N + 150) * T  # Duração total do sinal
+    t = np.linspace(-t_total / 2, t_total / 2, int(Fs * t_total))
     signal = np.zeros_like(t)
     pulses = []
     
-    # Gerar sequência de bits aleatória (0s e 1s)
-    bits = np.random.randint(0, 2, N)
-    symbols = 2 * bits - 1  # Mapear para -1 e +1 (BPSK)
+    # Gerar sequência de bits aleatória
+    bits = np.random.randint(0, M, N)
+    
+    # Mapear bits para símbolos conforme a modulação escolhida
+    if modulation == "BPSK":
+        symbols = 2 * bits - 1  # -1 e +1
+    elif modulation == "PAM":
+        symbols = 2 * bits / (M - 1) - 1  # M níveis igualmente espaçados entre -1 e 1
+    else:
+        raise ValueError("Modulação inválida. Escolha 'BPSK' ou 'PAM'")
     
     for n in range(N):
-        pulse = symbols[n] * raised_cosine_pulse(t - n * T, T, r)  # Ajusta pulso para refletir bit
+        pulse = symbols[n] * raised_cosine_pulse(t - n * T, T, r)  # Ajusta pulso para refletir símbolo
         pulses.append(pulse)
         signal += pulse
     
-    return t, signal, pulses, bits
+    return t, signal, pulses, bits, modulation
+
+def plot_eye_diagram(signal, T, Fs):
+    """
+    Plota o diagrama do olho para o sinal recebido.
+    signal: sinal modulado
+    T: período do símbolo
+    Fs: frequência de amostragem
+    """
+    samples_per_symbol = int(Fs * T)
+    num_segments = len(signal) // samples_per_symbol
+    
+    plt.figure(figsize=(8, 6))
+    for i in range(num_segments - 1):
+        segment = signal[i * samples_per_symbol:(i + 2) * samples_per_symbol]
+        time_axis = np.linspace(0, 2 * T, len(segment))
+        plt.plot(time_axis, segment, color='b', alpha=0.3)
+    
+    plt.xlabel("Tempo (s)")
+    plt.ylabel("Amplitude")
+    plt.title("Diagrama do Olho")
+    plt.grid()
+    plt.show()
 
 # Parâmetros
-N = 50      # Número de pulsos
+N = 250      # Número de pulsos
 T = 1      # Período de símbolo
-r = 0.01    # Fator de roll-off
+r = 0.5    # Fator de roll-off
 Fs = 1000  # Frequência de amostragem
+modulation = "PAM"  # Escolha "BPSK" ou "PAM"
+M = 4      # Número de símbolos na modulação PAM
 
-t, signal, pulses, bits = generate_signal(N, T, r, Fs)
+t, signal, pulses, bits, modulation = generate_signal(N, T, r, modulation, M, Fs)
 
 # Exibir sequência de bits gerada
+print(f"Modulação: {modulation} com {M} níveis")
 print("Sequência de bits transmitida:", bits)
 
 # Plotar os pulsos individuais
 plt.figure(figsize=(10, 6))
 for i, pulse in enumerate(pulses):
-    # plt.plot(t, pulse, label=f"Pulso {i+1} (Bit {bits[i]})")
     plt.plot(t, pulse)
 plt.xlabel("Tempo (s)")
+plt.xlim([-5, 200])
 plt.ylabel("Amplitude")
-plt.title("Pulsos Individuais de Cosseno Levantado (Modulados pelos Bits)")
+plt.title(f"Pulsos Individuais de Cosseno Levantado ({modulation})")
 plt.legend()
 plt.grid()
 plt.show()
 
 # Plotar o sinal total
 plt.figure(figsize=(10, 4))
-plt.plot(t, signal, label=f"Sinal com {N} pulsos modulados")
+plt.plot(t, signal, label=f"Sinal com {N} pulsos modulados ({modulation})")
 plt.xlabel("Tempo (s)")
+plt.xlim([-5, 200])
 plt.ylabel("Amplitude")
-plt.title("Sinal de Pulsos de Cosseno Levantado (Modulado pelos Bits)")
+plt.title(f"Sinal de Pulsos de Cosseno Levantado ({modulation})")
 plt.legend()
 plt.grid()
 plt.show()
+
+# Gerar e plotar o diagrama do olho
+plot_eye_diagram(signal, T, Fs)
